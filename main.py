@@ -1,8 +1,11 @@
 # Include logic to calculate emi for different loan types
 # provided by different banks for different emi types
 # There is also provision to compare loan provided by different Irish Banks
+# which include AIB, BOI, Avant Money, An Post and Revolute
+# In the first version, the emi for personal loan of above banks are calculated
 
-from tabulate import tabulate
+import constants as const
+from errors import ValidationErrors
 
 class LoanCalculator:
     
@@ -12,12 +15,11 @@ class LoanCalculator:
         self.amount = 0.0
         self.years = 0
         self.emi_frequency = None
-        self.interest_rate_dict = {}
         self.interest_rate = 0
         self.number_of_installments = 0
         self.installments_per_year = 0
 
-    def get_user_input(self, mode):
+    def get_user_input(self):
         """
         Collect user input based on selected mode
         Initialize all the nexessary fields for calculations.
@@ -30,65 +32,38 @@ class LoanCalculator:
         - interest_rate_dict from get_interest_rate()
         - number_of_installments, installments_per_year from calculate_intallments()
         """
-        if mode == 1:
 
-            # Type 1 : EMI for a specific bank
-            print("***Welcome to EMI Calculator for a Specific Bank***\n")
-            print("Bank Types: AIB, BOI, Revolute, Avant Money, An Post")
-            print("Loan Types: Personal Loan, Student Loan, Car Loan")
-
-            self.bank = input("Enter the bank name: ")
-            self.loan_type = input("Enter the loan type: ").lower()
-
-        elif mode == 2:
-
-            # Type 2 : Compare EMI across banks
-            print("***Welcome to Bank Loan Comparision***")
-            print("Loan Types: Personal Loan, Student Loan, Car Loan")
-
-            self.loan_type = input("Enter the loan type: ").lower()
-
-        self.amount = float(input("Enter the loan amount: "))
+        # EMI for a specific bank
+        print(const.bank_message)
+        self.bank = input("Enter the bank name: ").lower()
+        self.loan_type = input("Enter the loan type: ").lower()
+        self.amount = int(input("Enter the loan amount: "))
         self.years = int(input("Enter the repayment period (in years): "))
         print("EMI Frquency: Weekly, Fornightly or Monthly")
         self.emi_frequency = input("Enter EMI frequency: ").lower()
 
-        # Get the intrest rate dictionary for particular loan type
-        # Will use for mode:2 to comapre emi's
-        self.interest_rate_dict = self.get_intrest_rate()
-        self.interest_rate = self.interest_rate_dict.get(self.bank, 0)
+        # Error handling for amount, years and emi_frequency
+        ValidationErrors.validate_loan_amount(self.amount)
+        ValidationErrors.validate_no_year(self.years)
+        ValidationErrors.validate_emi_period(self.emi_frequency)
+
+        # Get interest rate for the particular bank
+        self.interest_rate = self.get_intrest_rate()
 
         # Calculate total number of installments and installments per year
         self.number_of_installments, self.installments_per_year = self.calculate_intallments()
 
     def get_intrest_rate(self):
-        # Dictionary to store different loan types, banks and their intrest rates
-        interest_rates = {
-            "personal loan":{
-                "AIB":8.95,
-                "BOI":8.5,
-                "Revolute":6.5,
-                "Avant Money":8.7,
-                "An Post":8.2
-            }
-            # "Student Loan":{
-            #     "AIB":,
-            #     "BOI":,
-            #     "Revolute":,
-            #     "Avant Money":,
-            #     "An Post":
-            # },
-            # "Car Loan":{
-            #     "AIB":,
-            #     "BOI":,
-            #     "Revolute":,
-            #     "Avant Money":,
-            #     "An Post":
-            # }
-        }
+
+        # Get whole interest rate dict form contants.py
+        interest_rates = const.interest_rates
+
+        # Error handling for invalid loan_types and banks
+        ValidationErrors.validate_loan(self.loan_type, interest_rates.keys())
+        ValidationErrors.valiadate_bank(self.loan_type, self.bank, interest_rates)
 
         # Get the intrest rate for the particular loan type for a bank
-        return interest_rates.get(self.loan_type, {})
+        return interest_rates.get(self.loan_type, {}).get(self.bank, 0)
     
     def calculate_intallments(self):
         """
@@ -146,43 +121,13 @@ class LoanCalculator:
 
         # Display the results
         print("\n---- Loan Details ----\n")
-        print(f"Bank: {self.bank}")
-        print(f"Loan type: {self.loan_type}")
+        print(f"Bank: {self.bank.capitalize()}")
+        print(f"Loan type: {self.loan_type.capitalize()}")
         print(f"Loan Amount: €{self.amount}")
-        print(f"Repayment Period: {self.years} years")
+        print(f"Repayment Period: {self.years} Years")
         print(f"EMI Frequency: {self.emi_frequency.capitalize()}\n")
         print(f"EMI: €{emi} ({self.emi_frequency.capitalize()})")
         print(f"Total Payment: €{total_payment:}")
         print(f"Total Interest: €{total_interest:}")
-        print(f"Interest Rate of {self.bank} for {self.loan_type}: {self.interest_rate}")
-
-    def compare_emis(self):
-        # if self.loan_type not in self.interest_rate_dict:
-        #     print("Invalid loan type. Please try again.")
-        #     return
-
-        table_data = []
-        
-        print(f"\n--- EMI Comparison for {self.loan_type.capitalize()} ---\n")
-
-        # Loop through each bank
-        for bank, rate in self.interest_rate_dict.items():
-            # Self interest rate and bank from the dictionary for the iteration
-            self.bank = bank
-            self.interest_rate = rate
-            
-            # Calculate the emi for particular bank
-            emi = self.calculate_emi()
-            total_payment = self.calculate_total_payment()
-            total_interest = self.calculate_total_interest()
-
-            table_data.append([bank, rate, emi, total_payment, total_interest])
-            
-        # Sort the output table by emi column
-        table_data = sorted(table_data, key=lambda x: x[2])
-
-        # Define table headings
-        headers = ["Bank Name", "Interest Rate (%)", f"EMI - {self.emi_frequency.capitalize()} (€)", "Total Payment (€)", "Total Interest(€)"]
-
-        # Print the output table
-        print(tabulate(table_data, headers=headers, tablefmt="grid"))
+        print(f"Interest Rate of {self.bank.capitalize()} for {self.loan_type.capitalize()}: {self.interest_rate}")
+        print(const.important_note)
