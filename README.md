@@ -46,9 +46,9 @@ In the first version, we are only focusing on Personal Loan provided by these ba
      ```
      git clone https://github.com/BhagavathKumar/irish_bank_loan.git
      ```
-  2. Switch to the `v0.1` branch:
+  2. Switch to the `main` branch:
      ```
-     git checkout v0.1
+     git checkout main
      ```
   3. Run `run.py` to calculate EMI for a specific bank.
   
